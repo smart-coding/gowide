@@ -7,5 +7,6 @@
   "StaticResourceVersion": "${time}",
   "Locale": "zh_CN",
   "SiteStatCode": "",
-  "ReadOnly": false
+  "ReadOnly": false,
+  "DockerEnv": false
 }

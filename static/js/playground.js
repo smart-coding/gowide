@@ -266,7 +266,7 @@ var playground = {
         this._initWideShare();
         this._initShare();
         menu._initAbout();
-        this._initGoNews();
+        //this._initGoNews();
     },
     _initWS: function () {
         // Used for session retention, server will release all resources of the session if this channel closed

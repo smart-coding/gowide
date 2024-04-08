@@ -58,7 +58,6 @@ func CreateZipHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		logger.Error(err)
 		data.Code = -1
-
 		return
 	}
 

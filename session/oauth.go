@@ -15,6 +15,7 @@
 package session
 
 import (
+	"encoding/json"
 	"html/template"
 	"math/rand"
 	"net/http"
@@ -42,18 +43,48 @@ func LoginRedirectHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, path, http.StatusSeeOther)
 }
 
-func LoginCallbackHandler(w http.ResponseWriter, r *http.Request) {
-	state := r.URL.Query().Get("state")
-	if _, exist := states[state]; !exist {
-		http.Error(w, "Get state param failed", http.StatusBadRequest)
+// LoginLocalHandler login with local user.
+func LoginLocalHandler(w http.ResponseWriter, r *http.Request) {
+	userId := r.FormValue("username")
+	userName := r.FormValue("username")
+	avatar := ""
+	user := conf.GetUser(userId)
+	if nil == user {
+		msg := addUser(userId, userName, avatar)
+		if userCreated != msg {
+			result := gulu.Ret.NewResult()
+			result.Code = -1
+			result.Msg = msg
+			gulu.Ret.RetResult(w, r, result)
 
-		return
+			return
+		}
 	}
-	delete(states, state)
 
-	accessToken := r.URL.Query().Get("access_token")
-	userInfo := util.HacPaiUserInfo(accessToken)
+	// create a HTTP session
+	httpSession, _ := HTTPSession.Get(r, CookieName)
+	httpSession.Values["uid"] = userId
+	httpSession.Values["id"] = strconv.Itoa(rand.Int())
+	httpSession.Options.MaxAge = conf.Wide.HTTPSessionMaxAge
+	httpSession.Save(r, w)
+	// 返回响应
+	response := map[string]string{"success": "true"}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 
+}
+
+func LoginCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	//state := r.URL.Query().Get("state")
+	//if _, exist := states[state]; !exist {
+	//	http.Error(w, "Get state param failed", http.StatusBadRequest)
+
+	//	return
+	//}
+	//delete(states, state)
+
+	//accessToken := r.URL.Query().Get("access_token")
+	userInfo := util.HacPaiUserInfo("")
 	userId := userInfo["userId"].(string)
 	userName := userInfo["userName"].(string)
 	avatar := userInfo["avatar"].(string)

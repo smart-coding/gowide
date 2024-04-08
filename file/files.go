@@ -681,8 +681,8 @@ func getIconSkin(filenameExtension string) string {
 //
 // fileType:
 //
-//  "f": file
-//  "d": directory
+//	"f": file
+//	"d": directory
 func createFile(path, fileType string) bool {
 	switch fileType {
 	case "f":

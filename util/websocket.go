@@ -41,7 +41,7 @@ func (c *WSChannel) WriteJSON(v interface{}) (ret error) {
 			ret = errors.New("channel has been closed")
 		}
 	}()
-
+	logger.Debugf("write json msg: %s ", v)
 	return c.Conn.WriteJSON(v)
 }
 

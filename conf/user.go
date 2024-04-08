@@ -107,7 +107,7 @@ func NewUser(id, name, avatar, workspace string) *User {
 
 	return &User{Id: id, Name: name, Avatar: avatar, Workspace: workspace,
 		Locale: Wide.Locale, GoFormat: "gofmt",
-		GoBuildArgsForLinux: "-i", GoBuildArgsForWindows: "-i", GoBuildArgsForDarwin: "-i",
+		GoBuildArgsForLinux: "", GoBuildArgsForWindows: "", GoBuildArgsForDarwin: "",
 		FontFamily: "Helvetica", FontSize: "13px", Theme: "default",
 		Keymap:  "wide",
 		Created: now, Updated: now, Lived: now,

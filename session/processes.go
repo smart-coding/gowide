@@ -17,19 +17,16 @@ package session
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/88250/gulu"
+	"github.com/88250/wide/conf"
+	"github.com/88250/wide/util"
 	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
-	"time"
-
-	"github.com/88250/gulu"
-	"github.com/88250/wide/conf"
-	"github.com/88250/wide/util"
 )
 
 // Type of process set.
@@ -78,140 +75,44 @@ func RunHandler(w http.ResponseWriter, r *http.Request, channel map[string]*util
 			"--memory", "64M", "--cpus", "0.1",
 			conf.DockerImageGo, "/"+fileName)
 	} else {
-		cmd = exec.Command(filePath)
+		logger.Debugf("run exec:[%s]", filePath)
+		//cmd = exec.Command("sleep 0.1 && sh " + filePath)
+		cmd = exec.Command("sh", "-c", filePath)
 		curDir := filepath.Dir(filePath)
 		cmd.Dir = curDir
 	}
 
-	outBuf := &bytes.Buffer{}
-	errBuf := &bytes.Buffer{}
-	cmd.Stdout = outBuf
-	cmd.Stderr = errBuf
+	var outBuf bytes.Buffer
+	var errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
 
-	if err := cmd.Start(); nil != err {
+	//outBuf := &bytes.Buffer{}
+	//errBuf := &bytes.Buffer{}
+	//cmd.Stdout = outBuf
+	//cmd.Stderr = errBuf
+
+	if err := cmd.Run(); nil != err {
 		logger.Error(err)
 		result.Code = -1
 	}
+	res := outBuf.String()
+
+	logger.Debug("run cmd res %s ", res)
 	wsChannel := channel[sid]
+	logger.Debug("wschannel id %s ", sid)
 	channelRet := map[string]interface{}{}
-	if 0 != result.Code {
-		channelRet["cmd"] = "run-done"
-		channelRet["output"] = ""
-		wsChannel.WriteJSON(&channelRet)
-		wsChannel.Refresh()
+	channelRet["cmd"] = "run-done"
+	channelRet["output"] = "<span class='build-succ'>" + res + "</span>\n"
+	logger.Debug("run complete data &s ", &channelRet)
+	wsChannel.WriteJSON(&channelRet)
+	wsChannel.Refresh()
 
-		return
-	}
-
-	done := make(chan error)
-	go func() { done <- cmd.Wait() }()
-
-	channelRet["pid"] = cmd.Process.Pid
-	Processes.Add(wSession, cmd.Process)
-	shouldExitBuf := false
-
-	// push once for front-end to get the 'run' state and pid
-	if nil != wsChannel {
-		channelRet["cmd"] = "run"
-		channelRet["output"] = ""
-		if nil != wsChannel {
-			wsChannel.WriteJSON(&channelRet)
-			wsChannel.Refresh()
-		}
-	}
-
-	go func() {
-		defer gulu.Panic.Recover(nil)
-		logger.Debugf("User [%s, %s] is running [id=%s, file=%s]", wSession.UserId, sid, rid, filePath)
-
-		go func() {
-			defer gulu.Panic.Recover(nil)
-			for {
-				if shouldExitBuf {
-					break
-				}
-
-				if 1 > outBuf.Len() {
-					time.Sleep(7 * time.Millisecond)
-					continue
-				}
-
-				r, _, err := outBuf.ReadRune()
-				if nil != err {
-					time.Sleep(7 * time.Millisecond)
-					continue
-				}
-
-				oneRuneStr := string(r)
-				oneRuneStr = strings.Replace(oneRuneStr, "<", "&lt;", -1)
-				oneRuneStr = strings.Replace(oneRuneStr, ">", "&gt;", -1)
-				channelRet["cmd"] = "run"
-				channelRet["output"] = oneRuneStr
-				wsChannel := channel[sid]
-				if nil != wsChannel {
-					wsChannel.WriteJSON(&channelRet)
-					wsChannel.Refresh()
-				}
-			}
-		}()
-
-		for {
-			if shouldExitBuf {
-				break
-			}
-
-			if 1 > errBuf.Len() {
-				time.Sleep(7 * time.Millisecond)
-				continue
-			}
-
-			r, _, err := errBuf.ReadRune()
-			if nil != err {
-				time.Sleep(7 * time.Millisecond)
-				continue
-			}
-
-			oneRuneStr := string(r)
-			oneRuneStr = strings.Replace(oneRuneStr, "<", "&lt;", -1)
-			oneRuneStr = strings.Replace(oneRuneStr, ">", "&gt;", -1)
-			channelRet["cmd"] = "run"
-			channelRet["output"] = "<span class='stderr'>" + oneRuneStr + "</span>"
-			wsChannel := channel[sid]
-			if nil != wsChannel {
-				wsChannel.WriteJSON(&channelRet)
-				wsChannel.Refresh()
-			}
-		}
-	}()
-
-	after := time.After(5 * time.Second)
-	kill := false
-	select {
-	case <-after:
-		if conf.Docker {
-			killCmd := exec.Command("docker", "rm", "-f", rid)
-			if err := killCmd.Run(); nil != err {
-				logger.Errorf("executes [docker rm -f " + rid + "] failed [" + err.Error() + "], this will cause resource leaking")
-			}
-		} else {
-			cmd.Process.Kill()
-		}
-
-		channelRet["output"] = "\n<span class='stderr'>run program timeout in 5s</span>\n"
-		kill = true
-	case <-done:
-		channelRet["output"] = "\n<span class='stderr'>run program complete</span>\n"
-	}
-
-	shouldExitBuf = true
-	Processes.Remove(wSession, cmd.Process)
-	logger.Debugf("User [%s, %s] done running [id=%s, file=%s, kill=%v]", wSession.UserId, sid, rid, filePath, kill)
-
-	if nil != wsChannel {
-		channelRet["cmd"] = "run-done"
-		wsChannel.WriteJSON(&channelRet)
-		wsChannel.Refresh()
-	}
+	channelRet["cmd"] = "run-complete"
+	channelRet["output"] = "process run complete"
+	logger.Debug("run complete data &s ", &channelRet)
+	wsChannel.WriteJSON(&channelRet)
+	wsChannel.Refresh()
 }
 
 // StopHandler handles request of stopping a running process.

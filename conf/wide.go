@@ -49,7 +49,7 @@ const (
 import "fmt"
 
 func main() {
-	fmt.Println("欢迎通过《边看边练 Go 系列》来学习 Go 语言 https://ld246.com/article/1437497122181")
+	fmt.Println("Hello Golang")
 }
 `
 )
@@ -66,6 +66,7 @@ type conf struct {
 	Autocomplete          bool          // default autocomplete
 	SiteStatCode          template.HTML // site statistic code
 	ReadOnly              bool          // read-only mode
+	DockerEnv             bool          // 是否使用docker环境
 }
 
 // Logger.
@@ -93,7 +94,8 @@ func Load(confPath, confData, confServer, confLogLevel, confReadOnly string, con
 	if nil != err {
 		logger.Warnf("Not found 'docker' installed, running user's code will cause security problem")
 	} else {
-		Docker = true
+		Docker = true && Wide.DockerEnv
+		logger.Infof("docker installed and wide env :", Wide.DockerEnv)
 	}
 }
 
@@ -138,15 +140,15 @@ func initUsers() {
 		}
 
 		// Compatibility upgrade (1.5.3): https://github.com/b3log/wide/issues/308
-		if "" == user.GoBuildArgsForLinux {
-			user.GoBuildArgsForLinux = "-i"
-		}
-		if "" == user.GoBuildArgsForWindows {
-			user.GoBuildArgsForWindows = "-i"
-		}
-		if "" == user.GoBuildArgsForDarwin {
-			user.GoBuildArgsForDarwin = "-i"
-		}
+		//if "" == user.GoBuildArgsForLinux {
+		//	user.GoBuildArgsForLinux = ""
+		//}
+		//if "" == user.GoBuildArgsForWindows {
+		//	user.GoBuildArgsForWindows = "-i"
+		//}
+		//if "" == user.GoBuildArgsForDarwin {
+		//	user.GoBuildArgsForDarwin = "-i"
+		//}
 
 		Users = append(Users, user)
 	}

@@ -343,17 +343,19 @@ var wide = {
     _initWS: function () {
         var outputWS = new ReconnectingWebSocket(config.channel + '/output/ws?sid=' + config.wideSessionId);
         outputWS.onopen = function () {
-            // console.log('[output onopen] connected');
+            console.log('[output onopen] connected');
         };
+        console.log("sid: " + config.wideSessionId)
 
         outputWS.onmessage = function (e) {
-            // console.log('[output onmessage]' + e.data);
+            console.log('[output onmessage]' + e.data);
             var data = JSON.parse(e.data);
 
             if (goLintFound) {
                 goLintFound = [];
             }
-
+            console.log('[data.cmd]' + data.cmd);
+            console.log('[data.cmd]' + data.nextCmd);
             if ('run' === data.nextCmd) {
                 var request = newWideRequest();
                 request.executable = data.executable;
@@ -463,7 +465,7 @@ var wide = {
             }
         };
         outputWS.onclose = function (e) {
-            // console.log('[output onclose] disconnected (' + e.code + ')');
+            console.log('[output onclose] disconnected (' + e.code + ')');
         };
         outputWS.onerror = function (e) {
             console.log('[output onerror]',e);

@@ -123,10 +123,10 @@ func BuildHandler(w http.ResponseWriter, r *http.Request) {
 
 	var goBuildArgs []string
 	goBuildArgs = append(goBuildArgs, "build")
-	goBuildArgs = append(goBuildArgs, user.BuildArgs(runtime.GOOS)...)
-	if !gulu.Str.Contains("-i", goBuildArgs) {
-		goBuildArgs = append(goBuildArgs, "-i")
-	}
+	//goBuildArgs = append(goBuildArgs, user.BuildArgs(runtime.GOOS)...)
+	//if !gulu.Str.Contains("-i", goBuildArgs) {
+	//	goBuildArgs = append(goBuildArgs, "-i")
+	//}
 
 	cmd := exec.Command("go", goBuildArgs...)
 	cmd.Dir = curDir
@@ -248,6 +248,7 @@ func BuildHandler(w http.ResponseWriter, r *http.Request) {
 	if nil == cmd.Wait() {
 		channelRet["nextCmd"] = args["nextCmd"]
 		channelRet["output"] = "<span class='build-succ'>" + i18n.Get(locale, "build-succ").(string) + "</span>\n"
+		logger.Debug("build msg %s ", &channelRet)
 	} else {
 		channelRet["output"] = "<span class='build-error'>" + i18n.Get(locale, "build-error").(string) + "</span>\n"
 

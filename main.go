@@ -21,7 +21,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -95,6 +95,7 @@ func main() {
 
 	// oauth
 	http.HandleFunc("/login/redirect", session.LoginRedirectHandler)
+	http.HandleFunc("/loginlocal", session.LoginLocalHandler)
 	http.HandleFunc("/login/callback", session.LoginCallbackHandler)
 
 	// session
@@ -157,8 +158,12 @@ func main() {
 	http.HandleFunc("/playground/autocomplete", handlerWrapper(playground.AutocompleteHandler))
 
 	logger.Infof("Wide is running [%s]", conf.Wide.Server)
-
-	err := http.ListenAndServe("127.0.0.1:7070", nil)
+	u, erru := url.Parse(conf.Wide.Server)
+	if erru != nil {
+		panic(erru)
+	}
+	logger.Infof("listen host %s", u.Host)
+	err := http.ListenAndServe(u.Host, nil)
 	if err != nil {
 		logger.Error(err)
 	}
@@ -214,7 +219,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-
 	t.Execute(w, model)
 }
 
